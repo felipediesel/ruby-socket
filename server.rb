@@ -2,13 +2,21 @@ require 'socket'
 
 port = 2000
 server = TCPServer.open port
-puts "Starting server at localhost: #{2000}"
+puts "Starting server at localhost: #{port}"
 
-loop do # Servers run forever
-  client = server.accept # Wait for a client to connect
+loop do # Server runs forever
+  Thread.start server.accept do |client| # Wait for a client to connect
+    loop do
+      data = client.gets
 
-  data = client.recvfrom(1024)[0].chomp
-  puts "Client send: '#{data}'"
+      break if data.nil?
 
-  client.close
+      puts "Client sent: '#{data.chomp}'"
+    end
+
+    puts "Client closed connection."
+    client.close
+  end
 end
+
+server.close
