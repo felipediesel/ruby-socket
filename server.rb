@@ -1,7 +1,28 @@
 require 'socket'
 
+class Logger
+  def initialize(path, stdout = true)
+    @path = path
+    @stdout = stdout
+  end
+
+  def write(message, client = nil)
+    client_req = client.nil? ? '' : client.peeraddr[1]
+    status = (client.nil? || client.closed?) ? 'closed' : 'connected'
+
+    message = "#{Time.now}; #{client_req}; #{status}; #{message}\n"
+    File.open @path, "a+" do |f|
+      f.write message
+    end
+
+    print message if @stdout
+  end
+end
+
 class Server
   def initialize(port)
+    @logger = Logger.new('messages.log')
+
     @port = port
     @server = TCPServer.open port
     @logger.write "Starting server at localhost: #{port}"
@@ -20,16 +41,16 @@ class Server
   end
 
   def listen(client)
-    puts "New client"
+    @logger.write "New client", client
     loop do
       data = client.gets
 
       break if data.nil?
 
-      puts "Client sent: #{data.chomp}"
+      @logger.write data.chomp, client
     end
 
-    puts "Client closed connection."
+    @logger.write  "Client closed connection.", client
     client.close
   end
 end
